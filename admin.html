@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Real ou IA? - PAINEL DO HOST</title>
+    <style>
+        body { font-family: sans-serif; background: #1368ce; color: white; text-align: center; margin: 0; padding: 20px; }
+        #media-display { height: 450px; background: rgba(0,0,0,0.2); border-radius: 20px; display: flex; justify-content: center; align-items: center; overflow: hidden; margin-bottom: 20px; }
+        img, video { max-height: 100%; border: 5px solid white; border-radius: 10px; }
+        .ranking-box { background: white; color: #333; padding: 20px; border-radius: 15px; max-width: 400px; margin: 0 auto; }
+        #ranking-list { list-style: none; padding: 0; font-size: 22px; font-weight: bold; }
+        #ranking-list li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .controles { margin-top: 30px; position: fixed; bottom: 20px; right: 20px; }
+        button { padding: 20px 40px; font-size: 20px; cursor: pointer; border-radius: 50px; border: none; background: #26890c; color: white; font-weight: bold; box-shadow: 0 4px #1a5e08; }
+        button:active { transform: translateY(4px); box-shadow: none; }
+    </style>
+</head>
+<body>
+
+    <h1>🤖 REAL ou IA? 📸</h1>
+
+    <div id="media-display">
+        <h2 id="msg-inicial">Aguardando jogadores entrarem...</h2>
+    </div>
+
+    <div class="ranking-box">
+        <h3>🏆 TOP 5 RANKING</h3>
+        <ul id="ranking-list"></ul>
+    </div>
+
+    <div class="controles">
+        <button onclick="proximaPergunta()">PRÓXIMA PERGUNTA ➔</button>
+    </div>
+
+    <audio id="trilha" loop src="https://drive.google.com/uc?export=download&id=ID_DA_SUA_MUSICA"></audio>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyA623RxOE0Jz8EMx8cd8vRcAD8Z3Vc06Ec",
+  authDomain: "urehoot.firebaseapp.com",
+  databaseURL: "https://urehoot-default-rtdb.firebaseio.com",
+  projectId: "urehoot",
+  storageBucket: "urehoot.firebasestorage.app",
+  messagingSenderId: "945876578083",
+  appId: "1:945876578083:web:e2119ce69812ee46ad2696"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // LISTA DE 10 PERGUNTAS (Substitua os IDs do Drive)
+        const perguntas = [
+            { tipo: 'imagem', url: 'https://drive.google.com/uc?export=view&id=ID_01' },
+            { tipo: 'video',  url: 'https://drive.google.com/uc?export=download&id=ID_02' },
+            { tipo: 'imagem', url: 'https://drive.google.com/uc?export=view&id=ID_03' },
+            { tipo: 'video',  url: 'https://drive.google.com/uc?export=download&id=ID_04' },
+            { tipo: 'imagem', url: 'https://drive.google.com/uc?export=view&id=ID_05' },
+            { tipo: 'video',  url: 'https://drive.google.com/uc?export=download&id=ID_06' },
+            { tipo: 'imagem', url: 'https://drive.google.com/uc?export=view&id=ID_07' },
+            { tipo: 'video',  url: 'https://drive.google.com/uc?export=download&id=ID_08' },
+            { tipo: 'imagem', url: 'https://drive.google.com/uc?export=view&id=ID_09' },
+            { tipo: 'video',  url: 'https://drive.google.com/uc?export=download&id=ID_10' }
+        ];
+
+        let atual = -1;
+
+        window.proximaPergunta = () => {
+            atual++;
+            const trilha = document.getElementById('trilha');
+            trilha.play().catch(() => {}); // Play se o browser deixar
+
+            if(atual < perguntas.length) {
+                const p = perguntas[atual];
+                const display = document.getElementById('media-display');
+                
+                if(p.tipo === 'imagem') {
+                    display.innerHTML = `<img src="${p.url}">`;
+                } else {
+                    display.innerHTML = `<video src="${p.url}" autoplay loop muted></video>`;
+                }
+
+                set(ref(db, 'jogo'), {
+                    status: 'pergunta',
+                    perguntaAtual: atual,
+                    timestamp: Date.now()
+                });
+            } else {
+                set(ref(db, 'jogo'), { status: 'pódio' });
+                document.getElementById('media-display').innerHTML = "<h2>🎉 FIM DE JOGO! Parabéns aos vencedores!</h2>";
+            }
+        };
+
+        // Escuta o ranking
+        const rankRef = query(ref(db, 'jogadores'), orderByChild('pontos'), limitToLast(5));
+        onValue(rankRef, (snap) => {
+            const list = [];
+            snap.forEach(child => { list.push(child.val()); });
+            list.reverse();
+            document.getElementById('ranking-list').innerHTML = list.map((p, i) => 
+                `<li><span>${i+1}º ${p.nome}</span> <span>${p.pontos}</span></li>`
+            ).join('');
+        });
+    </script>
+</body>
+</html>
